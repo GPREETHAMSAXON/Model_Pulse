@@ -6,8 +6,11 @@ Implements two complementary statistical tests:
 
 PSI thresholds (industry standard):
   < 0.10  → no significant drift   (healthy)
-  0.10–0.20 → moderate drift       (warning)
-  > 0.20  → significant drift      (critical)
+  0.10–0.25 → moderate drift       (warning)
+  > 0.25  → significant drift      (critical)
+
+IMPORTANT: PSI is unreliable with < 100 samples in either window.
+With small samples, rely primarily on KS test (p-value based).
 """
 
 import numpy as np
@@ -15,34 +18,52 @@ from scipy import stats
 from typing import Any, Dict, List, Optional, Tuple
 
 
-PSI_WARNING  = 0.10
-PSI_CRITICAL = 0.20
+PSI_WARNING   = 0.10
+PSI_CRITICAL  = 0.25
 KS_PVALUE_THRESHOLD = 0.05
+MIN_SAMPLES_FOR_PSI = 50   # PSI needs enough samples to be reliable
 
 
-def compute_psi(baseline: np.ndarray, current: np.ndarray, bins: int = 10) -> float:
-    """Compute Population Stability Index between baseline and current distributions."""
-    min_val = min(baseline.min(), current.min())
-    max_val = max(baseline.max(), current.max())
+def compute_psi(baseline: np.ndarray, current: np.ndarray, bins: int = 10) -> Optional[float]:
+    """
+    Compute Population Stability Index between baseline and current distributions.
+    Returns None if sample sizes are too small for reliable PSI.
 
-    if min_val == max_val:
-        return 0.0
+    Key fix: use Laplace smoothing (add 1 to all counts) instead of tiny epsilon.
+    This prevents log(near-zero) explosions with small samples.
+    """
+    if len(baseline) < MIN_SAMPLES_FOR_PSI or len(current) < MIN_SAMPLES_FOR_PSI:
+        return None  # Not enough data — don't compute PSI, rely on KS instead
 
-    edges = np.linspace(min_val, max_val, bins + 1)
+    if len(np.unique(baseline)) == 1:
+        return 0.0  # Constant feature — no drift possible
+
+    # Build bin edges from combined data for fair comparison
+    combined = np.concatenate([baseline, current])
+    edges = np.percentile(combined, np.linspace(0, 100, bins + 1))
+    edges = np.unique(edges)  # Remove duplicate edges (can happen with discrete data)
+
+    if len(edges) < 3:
+        return 0.0  # Not enough distinct values to bin
 
     baseline_counts, _ = np.histogram(baseline, bins=edges)
     current_counts,  _ = np.histogram(current,  bins=edges)
 
-    eps = 1e-8
-    baseline_pct = (baseline_counts + eps) / (len(baseline) + eps * bins)
-    current_pct  = (current_counts  + eps) / (len(current)  + eps * bins)
+    # Laplace smoothing — add 1 to every bin to avoid log(0)
+    # This is the industry-standard fix for small-sample PSI
+    baseline_pct = (baseline_counts + 1) / (len(baseline) + len(edges) - 1)
+    current_pct  = (current_counts  + 1) / (len(current)  + len(edges) - 1)
 
-    psi = np.sum((current_pct - baseline_pct) * np.log(current_pct / baseline_pct))
-    return float(round(psi, 6))
+    psi = float(np.sum((current_pct - baseline_pct) * np.log(current_pct / baseline_pct)))
+    return round(max(0.0, psi), 6)  # PSI is always non-negative
 
 
 def compute_ks(baseline: np.ndarray, current: np.ndarray) -> Tuple[float, float]:
-    """Kolmogorov-Smirnov two-sample test. Returns (ks_statistic, p_value)."""
+    """
+    Kolmogorov-Smirnov two-sample test.
+    Works well even with small samples (20+).
+    Returns (ks_statistic, p_value).
+    """
     ks_stat, p_value = stats.ks_2samp(baseline, current)
     return float(round(ks_stat, 6)), float(round(p_value, 6))
 
@@ -60,8 +81,8 @@ def try_to_float(values: List[Any]) -> Optional[np.ndarray]:
         try:
             numeric.append(float(v))
         except (ValueError, TypeError):
-            return None  # first non-numeric value → categorical, skip entirely
-    return np.array(numeric, dtype=float) if numeric else None
+            return None  # categorical — skip
+    return np.array(numeric, dtype=float) if len(numeric) >= 5 else None
 
 
 def extract_feature_column(predictions: List[Dict], feature: str) -> Optional[np.ndarray]:
@@ -71,10 +92,7 @@ def extract_feature_column(predictions: List[Dict], feature: str) -> Optional[np
 
 
 def extract_prediction_column(predictions: List[Dict]) -> Optional[np.ndarray]:
-    """
-    Extract prediction values as a numeric array.
-    Uses confidence scores when available, falls back to raw prediction value.
-    """
+    """Extract prediction values as a numeric array using confidence scores."""
     values = []
     for p in predictions:
         conf = p.get("confidence")
@@ -84,7 +102,7 @@ def extract_prediction_column(predictions: List[Dict]) -> Optional[np.ndarray]:
             values.append(float(val))
         except (ValueError, TypeError):
             continue
-    return np.array(values, dtype=float) if values else None
+    return np.array(values, dtype=float) if len(values) >= 5 else None
 
 
 def compute_feature_drift(
@@ -93,8 +111,9 @@ def compute_feature_drift(
 ) -> Dict[str, Dict]:
     """
     Compute drift scores for every numeric feature.
-    Categorical features (strings) are silently skipped.
-    Returns a dict keyed by feature name.
+    Primary signal: KS test (works with small samples)
+    Secondary signal: PSI (only computed with 50+ samples)
+    Drift decision: KS p-value < 0.05 OR PSI > threshold (when available)
     """
     if not baseline_preds or not current_preds:
         return {}
@@ -109,15 +128,25 @@ def compute_feature_drift(
         baseline_col = extract_feature_column(baseline_preds, feature)
         current_col  = extract_feature_column(current_preds,  feature)
 
-        # Skip categorical features or columns with insufficient data
         if baseline_col is None or current_col is None:
-            continue
+            continue  # categorical or insufficient data
         if len(baseline_col) < 10 or len(current_col) < 5:
             continue
 
-        psi              = compute_psi(baseline_col, current_col)
+        # KS test — primary signal (reliable with small samples)
         ks_stat, ks_pval = compute_ks(baseline_col, current_col)
-        drifted          = psi > PSI_WARNING or ks_pval < KS_PVALUE_THRESHOLD
+
+        # PSI — secondary signal (only with enough data)
+        psi = compute_psi(baseline_col, current_col)
+
+        # Drift decision:
+        # - If PSI available: drift = KS significant AND PSI > warning threshold
+        # - If PSI not available: drift = KS significant with stricter threshold
+        if psi is not None:
+            drifted = (ks_pval < KS_PVALUE_THRESHOLD) and (psi > PSI_WARNING)
+        else:
+            # Only KS available — use stricter p-value threshold
+            drifted = ks_pval < 0.01
 
         results[feature] = {
             "psi":       psi,
@@ -139,30 +168,54 @@ def compute_prediction_drift(
 
     if baseline_col is None or current_col is None:
         return {"psi": None, "drifted": False}
-    if len(baseline_col) < 10 or len(current_col) < 5:
-        return {"psi": None, "drifted": False}
 
+    ks_stat, ks_pval = compute_ks(baseline_col, current_col)
     psi = compute_psi(baseline_col, current_col)
+
+    if psi is not None:
+        drifted = (ks_pval < KS_PVALUE_THRESHOLD) and (psi > PSI_WARNING)
+    else:
+        drifted = ks_pval < 0.01
+
     return {
         "psi":     psi,
-        "drifted": psi > PSI_WARNING,
+        "drifted": drifted,
     }
 
 
 def determine_health(feature_drift: Dict, prediction_drift: Dict) -> str:
-    """Aggregate drift scores into an overall model health status."""
-    critical = (
-        any(v.get("psi", 0) > PSI_CRITICAL for v in feature_drift.values())
-        or (prediction_drift.get("psi") or 0) > PSI_CRITICAL
-    )
-    if critical:
+    """
+    Aggregate drift scores into overall model health.
+    Uses PSI only when available, falls back to KS-only decisions.
+    """
+    any_critical = False
+    any_warning  = False
+
+    for scores in feature_drift.values():
+        psi     = scores.get("psi")
+        drifted = scores.get("drifted", False)
+        ks_pval = scores.get("ks_pvalue", 1.0)
+
+        if psi is not None and psi > PSI_CRITICAL:
+            any_critical = True
+        elif drifted and psi is not None and psi > PSI_WARNING:
+            any_warning = True
+        elif drifted and psi is None and ks_pval < 0.001:
+            # Very strong KS signal without PSI
+            any_critical = True
+        elif drifted:
+            any_warning = True
+
+    # Check prediction drift
+    pred_psi     = prediction_drift.get("psi")
+    pred_drifted = prediction_drift.get("drifted", False)
+    if pred_psi is not None and pred_psi > PSI_CRITICAL:
+        any_critical = True
+    elif pred_drifted:
+        any_warning = True
+
+    if any_critical:
         return "critical"
-
-    warning = (
-        any(v.get("drifted") for v in feature_drift.values())
-        or prediction_drift.get("drifted")
-    )
-    if warning:
+    if any_warning:
         return "warning"
-
     return "healthy"
