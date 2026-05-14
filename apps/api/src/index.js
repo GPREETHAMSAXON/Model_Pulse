@@ -15,7 +15,6 @@ const { startCron } = require('./services/cron');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// ── CORS — allow all Vercel deployments + localhost
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -24,30 +23,22 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
-    // Allow any vercel.app subdomain
     if (origin.endsWith('.vercel.app')) return callback(null, true);
-    // Allow explicitly listed origins
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
 
-// ── Security middleware
 app.use(helmet());
-
-// ── Request parsing
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Logging (skip in test)
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// ── Global rate limiter
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
@@ -56,20 +47,25 @@ app.use(rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 }));
 
-// ── Health check (no auth required)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'modelpulse-api', env: process.env.NODE_ENV });
 });
 
-// ── Manual drift job trigger (dev only)
 if (process.env.NODE_ENV === 'development') {
   app.post('/dev/run-drift', async (req, res) => {
     const { runDriftJob } = require('./services/drift');
-    console.log('[dev] Manual drift job triggered');
     runDriftJob()
-      .then(() => console.log('[dev] Manual drift job complete'))
-      .catch((err) => console.error('[dev] Manual drift job failed:', err.message));
-    res.json({ message: 'Drift job triggered — check server logs' });
+      .then(() => console.log('[dev] drift job complete'))
+      .catch((err) => console.error('[dev] drift job failed:', err.message));
+    res.json({ message: 'Drift job triggered' });
+  });
+
+  app.post('/dev/run-llm', async (req, res) => {
+    const { runLlmJob } = require('./services/llmCron');
+    runLlmJob()
+      .then(() => console.log('[dev] LLM job complete'))
+      .catch((err) => console.error('[dev] LLM job failed:', err.message));
+    res.json({ message: 'LLM job triggered' });
   });
 }
 
@@ -79,13 +75,12 @@ app.use('/api/v1/models',      require('./routes/models'));
 app.use('/api/v1/predictions', require('./routes/predictions'));
 app.use('/api/v1/alerts',      require('./routes/alerts'));
 app.use('/api/v1/reports',     require('./routes/reports'));
+app.use('/api/v1/llm',         require('./routes/llm'));        // ← NEW: LLM monitoring
 
-// ── 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
 });
 
-// ── Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -94,7 +89,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ── Boot
 async function start() {
   try {
     console.log('→ Connecting to PostgreSQL...');
