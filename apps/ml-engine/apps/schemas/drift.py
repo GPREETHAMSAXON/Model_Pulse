@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 
 
@@ -9,23 +9,28 @@ class PredictionRecord(BaseModel):
     timestamp: Optional[str] = None
 
 
-class BaselineRequest(BaseModel):
-    model_id: str
-    predictions: List[PredictionRecord]
-
-
 class DriftRequest(BaseModel):
     model_id: str
-    baseline: List[PredictionRecord]   # reference distribution
-    current: List[PredictionRecord]    # production window to test
-    task_type: str = "classification"  # classification | regression
+    baseline: List[PredictionRecord]
+    current: List[PredictionRecord]
+    task_type: str = "classification"
 
 
 class FeatureDriftResult(BaseModel):
+    # Shared
+    type: str = "numeric"            # numeric | categorical
+    drifted: bool = False
+
+    # Numeric fields
     psi: Optional[float] = None
     ks_stat: Optional[float] = None
     ks_pvalue: Optional[float] = None
-    drifted: bool = False
+
+    # Categorical fields
+    js_divergence: Optional[float] = None
+    chi2_pvalue: Optional[float] = None
+    severity: Optional[str] = None
+    categories: Optional[List[str]] = None
 
 
 class DriftResponse(BaseModel):
@@ -33,4 +38,4 @@ class DriftResponse(BaseModel):
     prediction_count: int
     feature_drift: Dict[str, FeatureDriftResult]
     prediction_drift: FeatureDriftResult
-    overall_health: str  # healthy | warning | critical
+    overall_health: str

@@ -1,9 +1,8 @@
-fastapi
-uvicorn[standard]
-evidently==0.4.22
-scipy
-numpy
-pandas
-pydantic
-python-dotenv
-httpx
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+scipy==1.13.0
+numpy==1.26.4
+pandas==2.2.2
+pydantic==2.7.1
+python-dotenv==1.0.1
+httpx==0.27.0

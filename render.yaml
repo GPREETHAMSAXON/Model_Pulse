@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: modelpulse-ml-engine
+    runtime: python
+    rootDir: apps/ml-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ML_ENGINE_SECRET
+        value: internal_service_secret
+      - key: API_URL
+        value: https://model-pulse.onrender.com
+    healthCheckPath: /health
