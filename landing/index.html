@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModelPulse — ML Model Monitoring for Developers</title>
+<meta name="description" content="Know when your ML model breaks. Drift detection, AI diagnosis, and alerts in 60 seconds. pip install modelpulse.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020408;--surface:rgba(255,255,255,.03);--border:rgba(255,255,255,.07);
+  --border-b:rgba(99,179,237,.3);--text:#e8f0fe;--muted:rgba(232,240,254,.45);
+  --p:#63b3ed;--pg:rgba(99,179,237,.12);--acc:#f6ad55;--dan:#fc8181;--suc:#68d391;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;cursor:none}
+#cur{width:12px;height:12px;background:var(--p);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width .2s,height .2s}
+#ring{width:40px;height:40px;border:1px solid rgba(99,179,237,.35);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .3s,height .3s}
+#bgc{position:fixed;inset:0;z-index:0;opacity:.55}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0;animation:orbF linear infinite}
+@keyframes orbF{0%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(40px,-25px) rotate(120deg)}66%{transform:translate(-25px,15px) rotate(240deg)}100%{transform:translate(0,0) rotate(360deg)}}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 60px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);border-bottom:1px solid var(--border);background:rgba(2,4,8,.8)}
+.logo{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.logo span{color:var(--p)}
+.navl{display:flex;gap:32px;align-items:center}
+.navl a{font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:color .2s}
+.navl a:hover{color:var(--text)}
+.ncta{padding:9px 22px;background:var(--p);color:#020408!important;border-radius:6px;font-weight:700!important;transition:box-shadow .2s,transform .2s!important}
+.ncta:hover{box-shadow:0 0 28px rgba(99,179,237,.45);transform:translateY(-1px)}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 40px 80px;position:relative;z-index:1}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border:1px solid var(--border-b);border-radius:100px;font-size:12px;font-weight:500;color:var(--p);background:var(--pg);margin-bottom:44px;font-family:'JetBrains Mono',monospace;animation:fadeUp .8s ease both}
+.bdot{width:6px;height:6px;background:var(--suc);border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+h1.ht{font-size:clamp(54px,9vw,108px);font-weight:800;line-height:.9;letter-spacing:-5px;margin-bottom:32px;animation:fadeUp .8s .1s ease both}
+.grad{background:linear-gradient(135deg,var(--p) 0%,#a78bfa 45%,var(--acc) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% 200%;animation:gshift 5s ease infinite}
+@keyframes gshift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hsub{font-size:18px;font-weight:400;color:var(--muted);line-height:1.65;max-width:500px;margin:0 auto 56px;animation:fadeUp .8s .2s ease both}
+.hact{display:flex;gap:16px;justify-content:center;align-items:center;animation:fadeUp .8s .3s ease both;margin-bottom:80px}
+.bp{padding:14px 34px;background:var(--p);color:#020408;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:none;text-decoration:none;transition:box-shadow .25s,transform .2s;display:inline-flex;align-items:center;gap:8px}
+.bp:hover{box-shadow:0 0 60px rgba(99,179,237,.55),0 0 120px rgba(99,179,237,.2);transform:translateY(-2px)}
+.bg{padding:14px 34px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:'Syne',sans-serif;font-size:15px;font-weight:600;cursor:none;text-decoration:none;transition:border-color .2s,color .2s}
+.bg:hover{border-color:var(--border-b);color:var(--text)}
+.demo{width:100%;max-width:940px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:20px;overflow:hidden;backdrop-filter:blur(24px);animation:fadeUp .8s .4s ease both;box-shadow:0 0 140px rgba(99,179,237,.06),0 70px 120px rgba(0,0,0,.55);transition:transform .15s ease-out}
+.dbar{padding:14px 20px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dd{width:10px;height:10px;border-radius:50%}
+.durl{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(232,240,254,.22);margin-left:10px}
+.din{padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.dhead{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.dmn{font-size:17px;font-weight:700}
+.dms{font-size:11px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.cbadge{padding:6px 16px;border-radius:100px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.35);color:var(--dan);font-size:12px;font-weight:700;letter-spacing:.08em;animation:cp 2.5s ease-in-out infinite}
+@keyframes cp{0%,100%{box-shadow:0 0 0 0 rgba(252,129,129,0)}50%{box-shadow:0 0 0 10px rgba(252,129,129,.07)}}
+.kpi{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;padding:16px}
+.kl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.kv{font-size:26px;font-weight:700}
+.drs{grid-column:1/-1}
+.drh{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.drr{display:grid;grid-template-columns:100px 1fr 64px 64px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.drr:last-child{border:none}
+.dl{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+.dbw{background:rgba(255,255,255,.06);border-radius:4px;height:6px;overflow:hidden}
+
+/* Bar animation — driven by JS class toggle so it resets each time */
+.db{height:100%;border-radius:4px;width:0;transition:none}
+.db.animate{transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+
+.dp{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:right}
+.drifted{color:var(--dan);font-size:10px;font-weight:700;letter-spacing:.05em;text-align:right}
+.dok{color:var(--suc);font-size:10px;font-weight:700;letter-spacing:.05em;text-align:right}
+.dgc{grid-column:1/-1;background:rgba(99,179,237,.05);border:1px solid rgba(99,179,237,.15);border-radius:12px;padding:16px}
+.dgl{font-size:10px;color:var(--p);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px}
+.dgt{font-size:13px;color:var(--muted);line-height:1.65}
+.tc{display:inline-block;width:2px;height:13px;background:var(--p);margin-left:2px;vertical-align:middle;animation:bl 1s step-end infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+.sdk{grid-column:1/-1;background:rgba(0,0,0,.55);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.9}
+.sc{color:rgba(104,211,145,.5)}.sk{color:#f6ad55}.ss{color:#68d391}.sf{color:var(--p)}.sd{color:#d6bcfa}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+.stats{position:relative;z-index:1;padding:70px 60px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);background:rgba(255,255,255,.01)}
+.si{text-align:center;padding:16px}
+.sv{font-size:52px;font-weight:800;letter-spacing:-3px;background:linear-gradient(135deg,var(--text),var(--muted));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sl{font-size:13px;color:var(--muted);margin-top:10px}
+.feats{position:relative;z-index:1;padding:130px 60px;max-width:1200px;margin:0 auto}
+.sl2{font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--p);font-family:'JetBrains Mono',monospace;margin-bottom:18px}
+.st{font-size:clamp(38px,5vw,64px);font-weight:800;letter-spacing:-2.5px;line-height:1.02;margin-bottom:80px}
+.st span,.ctat span{background:linear-gradient(135deg,var(--p),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.fc{background:var(--bg);padding:40px 36px;transition:background .3s;position:relative;overflow:hidden}
+.fc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--p),transparent);opacity:0;transition:opacity .3s}
+.fc:hover{background:rgba(99,179,237,.025)}
+.fc:hover::after{opacity:1}
+.fi{width:52px;height:52px;background:var(--pg);border:1px solid var(--border-b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px}
+.ftitle{font-size:18px;font-weight:700;margin-bottom:12px}
+.fdesc{font-size:14px;color:var(--muted);line-height:1.75}
+.ftag{display:inline-block;margin-top:18px;padding:4px 10px;border-radius:4px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;background:rgba(99,179,237,.08);color:var(--p);letter-spacing:.05em}
+.hiw{position:relative;z-index:1;padding:130px 60px;max-width:1200px;margin:0 auto}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;position:relative}
+.steps::before{content:'';position:absolute;top:32px;left:16%;right:16%;height:1px;background:linear-gradient(90deg,transparent,var(--border-b),transparent)}
+.step{text-align:center}
+.snum{width:64px;height:64px;border-radius:50%;background:var(--pg);border:1px solid var(--border-b);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:22px;font-weight:800;color:var(--p);position:relative;z-index:1}
+.stitle{font-size:18px;font-weight:700;margin-bottom:12px}
+.sdesc{font-size:14px;color:var(--muted);line-height:1.7}
+.scode{margin-top:18px;padding:12px 16px;background:rgba(0,0,0,.5);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--p);border:1px solid var(--border);text-align:left}
+.vs{position:relative;z-index:1;padding:80px 60px;max-width:900px;margin:0 auto}
+.vtable{width:100%;border-collapse:collapse;font-size:14px}
+.vtable th{padding:12px 20px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)}
+.vtable td{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted)}
+.vtable td:first-child{color:var(--text);font-weight:600}
+.vtable tr:last-child td{border:none}
+.you{color:var(--p)!important;font-weight:700!important}
+.chk{color:var(--suc)}
+.xm{color:rgba(232,240,254,.2)}
+.pricing{position:relative;z-index:1;padding:130px 60px;max-width:1200px;margin:0 auto;text-align:center}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-top:64px;text-align:left}
+.pc{background:var(--bg);padding:44px 36px;position:relative}
+.pc.hot{background:rgba(99,179,237,.03)}
+.pc.hot::after{content:'MOST POPULAR';position:absolute;top:-1px;left:50%;transform:translateX(-50%);padding:4px 18px;background:var(--p);color:#020408;font-size:10px;font-weight:800;letter-spacing:.12em;border-radius:0 0 8px 8px}
+.pname{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:18px}
+.pprice{font-size:56px;font-weight:800;letter-spacing:-3px;margin-bottom:4px}
+.pprice span{font-size:18px;font-weight:400;color:var(--muted)}
+.pdesc{font-size:13px;color:var(--muted);margin-bottom:32px;padding-bottom:32px;border-bottom:1px solid var(--border)}
+.pfeats{list-style:none;display:flex;flex-direction:column;gap:13px;margin-bottom:36px}
+.pfeats li{font-size:14px;color:var(--muted);display:flex;align-items:flex-start;gap:10px}
+.pfeats li::before{content:'→';color:var(--p);flex-shrink:0;font-weight:700}
+.pbtn{width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:none;transition:all .2s}
+.pbtn:hover{border-color:var(--border-b)}
+.pbtn.hot{background:var(--p);color:#020408;border-color:var(--p)}
+.pbtn.hot:hover{box-shadow:0 0 40px rgba(99,179,237,.45)}
+.ctas{position:relative;z-index:1;padding:140px 60px;text-align:center}
+.ctag{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:350px;background:radial-gradient(ellipse,rgba(99,179,237,.07) 0%,transparent 70%);pointer-events:none}
+.ctat{font-size:clamp(44px,7vw,84px);font-weight:800;letter-spacing:-3px;line-height:1.02;margin-bottom:28px}
+.ctas2{font-size:18px;color:var(--muted);margin-bottom:52px}
+footer{position:relative;z-index:1;padding:36px 60px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.fl{font-size:16px;font-weight:800}
+.fl span{color:var(--p)}
+.ft{font-size:12px;color:var(--muted)}
+
+/* ── REVEAL: resets when out of view so animations replay on re-entry */
+.reveal{opacity:0;transform:translateY(44px);transition:opacity .9s ease,transform .9s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ── Individual child stagger inside a revealed parent */
+.reveal.visible .fc{animation:fadeUp .7s ease both}
+.reveal.visible .fc:nth-child(1){animation-delay:.05s}
+.reveal.visible .fc:nth-child(2){animation-delay:.12s}
+.reveal.visible .fc:nth-child(3){animation-delay:.19s}
+.reveal.visible .fc:nth-child(4){animation-delay:.26s}
+.reveal.visible .fc:nth-child(5){animation-delay:.33s}
+.reveal.visible .fc:nth-child(6){animation-delay:.40s}
+.reveal.visible .step{animation:fadeUp .7s ease both}
+.reveal.visible .step:nth-child(1){animation-delay:.05s}
+.reveal.visible .step:nth-child(2){animation-delay:.18s}
+.reveal.visible .step:nth-child(3){animation-delay:.31s}
+.reveal.visible .pc{animation:fadeUp .7s ease both}
+.reveal.visible .pc:nth-child(1){animation-delay:.05s}
+.reveal.visible .pc:nth-child(2){animation-delay:.16s}
+.reveal.visible .pc:nth-child(3){animation-delay:.27s}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="ring"></div>
+<div class="orb" style="width:600px;height:600px;background:rgba(99,179,237,.032);top:-150px;right:-150px;animation-duration:22s"></div>
+<div class="orb" style="width:450px;height:450px;background:rgba(167,139,250,.028);bottom:15%;left:-180px;animation-duration:28s;animation-delay:-9s"></div>
+<div class="orb" style="width:350px;height:350px;background:rgba(246,173,85,.022);top:55%;right:5%;animation-duration:19s;animation-delay:-5s"></div>
+<canvas id="bgc"></canvas>
+
+<nav>
+  <div class="logo"><span>Model</span>Pulse</div>
+  <div class="navl">
+    <a href="#features">Features</a>
+    <a href="#hiw">Quickstart</a>
+    <a href="#pricing">Pricing</a>
+    <a href="http://localhost:5173/login" class="ncta">Get started free →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge"><div class="bdot"></div>pip install modelpulse &nbsp;·&nbsp; v0.1.0 &nbsp;·&nbsp; Now live</div>
+  <h1 class="ht">Know when your<br><span class="grad">model breaks.</span></h1>
+  <p class="hsub">ML model monitoring for developers who just shipped their first model — and need to know the moment it starts failing.</p>
+  <div class="hact">
+    <a href="http://localhost:5173/login" class="bp">Start monitoring free →</a>
+    <a href="#hiw" class="bg">See how it works</a>
+  </div>
+  <div class="demo" id="demoCard">
+    <div class="dbar">
+      <div class="dd" style="background:#fc8181"></div>
+      <div class="dd" style="background:#f6ad55"></div>
+      <div class="dd" style="background:#68d391"></div>
+      <span class="durl">modelpulse.dev / dashboard / churn-predictor-v1</span>
+    </div>
+    <div class="din">
+      <div class="dhead">
+        <div><div class="dmn">Churn Predictor v1</div><div class="dms">classification &nbsp;·&nbsp; 2,847 predictions today &nbsp;·&nbsp; last computed 2 min ago</div></div>
+        <div class="cbadge">⚠ CRITICAL DRIFT</div>
+      </div>
+      <div class="kpi"><div class="kl">Predictions / hr</div><div class="kv" style="color:var(--text)" id="kpi1">0</div></div>
+      <div class="kpi"><div class="kl">Avg latency</div><div class="kv" style="color:var(--suc)" id="kpi2">0ms</div></div>
+      <div class="drs">
+        <div class="drh">Feature drift scores — rolling 1 hour window</div>
+        <div class="drr"><div class="dl">income</div><div class="dbw"><div class="db" id="bar1" data-w="100" style="background:linear-gradient(90deg,#fc8181,#feb2b2)"></div></div><div class="dp">PSI 38.6</div><div class="drifted">DRIFTED</div></div>
+        <div class="drr"><div class="dl">age</div><div class="dbw"><div class="db" id="bar2" data-w="84" style="background:linear-gradient(90deg,#fc8181,#feb2b2)"></div></div><div class="dp">PSI 32.7</div><div class="drifted">DRIFTED</div></div>
+        <div class="drr"><div class="dl">tenure</div><div class="dbw"><div class="db" id="bar3" data-w="46" style="background:linear-gradient(90deg,#f6ad55,#fbd38d)"></div></div><div class="dp">PSI 15.6</div><div class="drifted">DRIFTED</div></div>
+        <div class="drr"><div class="dl">plan_type</div><div class="dbw"><div class="db" id="bar4" data-w="4" style="background:#68d391"></div></div><div class="dp">PSI 0.02</div><div class="dok">OK</div></div>
+      </div>
+      <div class="dgc"><div class="dgl">✦ AI Diagnosis &nbsp;·&nbsp; Powered by Claude</div><div class="dgt" id="diagText"></div></div>
+      <div class="sdk">
+        <div><span class="sc"># 3 lines to start monitoring any model</span></div>
+        <div><span class="sk">import</span> modelpulse</div>
+        <div>modelpulse.<span class="sf">init</span>(<span class="ss">"mp_live_xxxx"</span>, model_id=<span class="ss">"your-model-id"</span>)</div><br>
+        <div><span class="sd">@modelpulse.monitor</span></div>
+        <div><span class="sk">def</span> <span class="sf">predict</span>(features): <span class="sk">return</span> model.predict(features)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stats reveal" id="statsStrip">
+  <div class="si"><div class="sv" id="s1">0s</div><div class="sl">Time to first dashboard</div></div>
+  <div class="si"><div class="sv" id="s2">0</div><div class="sl">Lines of code to integrate</div></div>
+  <div class="si"><div class="sv" id="s3">$0</div><div class="sl">Free tier, no credit card</div></div>
+  <div class="si"><div class="sv" id="s4">0%</div><div class="sl">No MLOps team required</div></div>
+</div>
+
+<section class="feats" id="features">
+  <div class="reveal"><div class="sl2">// capabilities</div><h2 class="st">Everything your model<br><span>needs to stay healthy</span></h2></div>
+  <div class="fg reveal">
+    <div class="fc"><div class="fi">⚡</div><div class="ftitle">Zero-config SDK</div><div class="fdesc">One decorator wraps your predict function. No schema definition, no infra setup. Works with sklearn, XGBoost, PyTorch — anything callable.</div><div class="ftag">pip install modelpulse</div></div>
+    <div class="fc"><div class="fi">📡</div><div class="ftitle">Drift Detection</div><div class="fdesc">Population Stability Index + Kolmogorov-Smirnov tests run every hour. Catches data drift before your model starts making silently wrong predictions.</div><div class="ftag">PSI · KS Test · Auto-baseline</div></div>
+    <div class="fc"><div class="fi">✦</div><div class="ftitle">AI Diagnosis</div><div class="fdesc">Claude analyzes every drift snapshot and explains what changed in plain English. No data science degree needed to understand the alerts.</div><div class="ftag">Powered by Claude Sonnet</div></div>
+    <div class="fc"><div class="fi">🔔</div><div class="ftitle">Smart Alerts</div><div class="fdesc">Threshold + anomaly triggers via Slack and email. Every alert includes the AI-generated diagnosis so you know what to fix before opening the dashboard.</div><div class="ftag">Slack · Email · Webhooks</div></div>
+    <div class="fc"><div class="fi">📊</div><div class="ftitle">Live Dashboard</div><div class="fdesc">Feature drift heatmaps, prediction volume trends, confidence distributions, and latency — all real-time, all in a dashboard that looks like it costs $500/month.</div><div class="ftag">Real-time · Dark mode</div></div>
+    <div class="fc"><div class="fi">📄</div><div class="ftitle">Shareable Reports</div><div class="fdesc">One-click PDF and HTML model health reports with public links. Send stakeholders professional reports without giving them full dashboard access.</div><div class="ftag">PDF · HTML · Public links</div></div>
+  </div>
+</section>
+
+<section class="hiw" id="hiw">
+  <div class="reveal"><div class="sl2">// quickstart</div><h2 class="st">Up and running<br><span>in 60 seconds flat</span></h2></div>
+  <div class="steps reveal">
+    <div class="step"><div class="snum">1</div><div class="stitle">Install the SDK</div><div class="sdesc">One pip install. Zero extra dependencies. Works in any Python environment — local, Colab, cloud, serverless.</div><div class="scode">pip install modelpulse</div></div>
+    <div class="step"><div class="snum">2</div><div class="stitle">Wrap your model</div><div class="sdesc">Add one decorator. ModelPulse logs inputs, outputs, confidence scores, and latency automatically on every call.</div><div class="scode"><span style="color:#d6bcfa">@modelpulse.monitor</span><br><span style="color:#f6ad55">def</span> predict(features): ...</div></div>
+    <div class="step"><div class="snum">3</div><div class="stitle">Watch the dashboard</div><div class="sdesc">Drift scores, AI diagnosis, and alerts appear automatically. Get notified the moment something drifts.</div><div class="scode" style="color:#68d391">✓ Baseline ready (100+ predictions)<br>✓ Drift monitoring active<br>✓ Alerts configured</div></div>
+  </div>
+</section>
+
+<section class="vs reveal">
+  <div style="text-align:center;margin-bottom:48px"><div class="sl2" style="display:flex;justify-content:center">// comparison</div><h2 class="st" style="font-size:clamp(28px,4vw,48px);margin-bottom:0">How ModelPulse compares</h2></div>
+  <table class="vtable">
+    <thead><tr><th>Feature</th><th class="you">ModelPulse</th><th>Arize AI</th><th>WhyLabs</th><th>Evidently</th></tr></thead>
+    <tbody>
+      <tr><td>Setup time</td><td class="you">60 seconds</td><td>Days–weeks</td><td>Hours</td><td>Self-hosted</td></tr>
+      <tr><td>Pricing</td><td class="you">Free + $19/mo</td><td>Enterprise $$$$</td><td>Custom</td><td>Open source</td></tr>
+      <tr><td>AI diagnosis</td><td class="you chk">✓ Claude-powered</td><td class="xm">✗ None</td><td class="xm">✗ None</td><td class="xm">✗ None</td></tr>
+      <tr><td>SDK lines to integrate</td><td class="you">3 lines</td><td>50+ lines</td><td>20+ lines</td><td>DIY setup</td></tr>
+      <tr><td>Target user</td><td class="you">Solo devs & startups</td><td>Enterprise ML teams</td><td>Mid-size teams</td><td>Technical only</td></tr>
+      <tr><td>Dashboard included</td><td class="you chk">✓ Always</td><td class="chk">✓</td><td class="chk">✓</td><td class="xm">✗ Build your own</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="reveal"><div class="sl2" style="display:flex;justify-content:center">// pricing</div><h2 class="st" style="text-align:center">Simple, transparent pricing.<br><span>No enterprise sales call.</span></h2></div>
+  <div class="pgrid reveal">
+    <div class="pc"><div class="pname">Hobby</div><div class="pprice">$0 <span>/ month</span></div><div class="pdesc">For students, researchers, and side projects. No credit card ever required.</div><ul class="pfeats"><li>1 model</li><li>10k predictions / month</li><li>7-day data retention</li><li>Drift detection</li><li>Email alerts</li></ul><button class="pbtn" onclick="window.location='http://localhost:5173/login'">Get started free</button></div>
+    <div class="pc hot"><div class="pname">Pro</div><div class="pprice">$19 <span>/ month</span></div><div class="pdesc">For freelancers and small teams shipping real models to production.</div><ul class="pfeats"><li>5 models</li><li>500k predictions / month</li><li>90-day data retention</li><li>AI diagnosis (Claude)</li><li>Slack + email alerts</li><li>PDF / HTML reports</li><li>Public share links</li></ul><button class="pbtn hot" onclick="window.location='http://localhost:5173/login'">Start free trial</button></div>
+    <div class="pc"><div class="pname">Team</div><div class="pprice">$79 <span>/ month</span></div><div class="pdesc">For growing ML teams managing multiple production models.</div><ul class="pfeats"><li>Unlimited models</li><li>5M predictions / month</li><li>1-year data retention</li><li>All Pro features</li><li>Team roles + permissions</li><li>Priority support</li></ul><button class="pbtn" onclick="window.location='http://localhost:5173/login'">Get started</button></div>
+  </div>
+</section>
+
+<section class="ctas reveal">
+  <div class="ctag"></div>
+  <div class="ctat">Your model is live.<br>Is it still <span class="grad">working?</span></div>
+  <div class="ctas2">Start monitoring in 60 seconds. Free forever on Hobby plan.</div>
+  <a href="http://localhost:5173/login" class="bp" style="font-size:16px;padding:16px 48px">Start monitoring free →</a>
+</section>
+
+<footer>
+  <div class="fl"><span>Model</span>Pulse</div>
+  <div class="ft">Built by Saxon Preetham · 2026 · Visakhapatnam, India</div>
+  <div class="ft" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--p)">v0.1.0 · pip install modelpulse</div>
+</footer>
+
+<script>
+// ── Cursor
+const cur=document.getElementById('cur'),ring=document.getElementById('ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function a(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(a);})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.width='22px';cur.style.height='22px';ring.style.width='64px';ring.style.height='64px';});
+  el.addEventListener('mouseleave',()=>{cur.style.width='12px';cur.style.height='12px';ring.style.width='40px';ring.style.height='40px';});
+});
+
+// ── Particles
+const cv=document.getElementById('bgc'),ctx=cv.getContext('2d');
+let W,H,pts=[];
+function rsz(){W=cv.width=innerWidth;H=cv.height=innerHeight;}
+rsz();addEventListener('resize',rsz);
+class P{
+  constructor(){this.reset();}
+  reset(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.22;this.vy=(Math.random()-.5)*.22;this.r=Math.random()*1.2+.4;this.a=Math.random()*.3+.08;this.col=Math.random()>.65?'#63b3ed':Math.random()>.5?'#a78bfa':'#f6ad55';}
+  update(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W||this.y<0||this.y>H)this.reset();}
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=this.col;ctx.globalAlpha=this.a;ctx.fill();ctx.globalAlpha=1;}
+}
+for(let i=0;i<150;i++)pts.push(new P());
+function lines(){for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<105){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(99,179,237,'+(0.07*(1-d/105))+')';ctx.lineWidth=.5;ctx.stroke();}}}
+(function anim(){ctx.clearRect(0,0,W,H);pts.forEach(p=>{p.update();p.draw();});lines();requestAnimationFrame(anim);})();
+
+// ── Typewriter — runs once on load
+const msg="**Churn Predictor v1** is seeing customers that look very different from its training data — income dropped ~60% and tenure ~80% in the current window. Predictions are likely unreliable. **Action: retrain using customer data from the last 30 days.**";
+const dtEl=document.getElementById('diagText');
+let ti=0;
+function type(){if(ti<msg.length){dtEl.innerHTML=msg.slice(0,++ti).replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--text)">$1</strong>')+'<span class="tc"></span>';setTimeout(type,14+Math.random()*10);}else{dtEl.innerHTML=msg.replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--text)">$1</strong>');}}
+setTimeout(type,2000);
+
+// ── KPI counters — reset and replay each time hero demo is in view
+function animKpi(el,target,suffix,delay){
+  setTimeout(()=>{
+    let c=0;const step=target/40;
+    el.textContent='0'+(suffix||'');
+    const t=setInterval(()=>{c+=step;if(c>=target){c=target;clearInterval(t);}el.textContent=Math.floor(c)+(suffix||'');},20);
+  },delay||0);
+}
+
+// ── Bar grow — reset width to 0 then animate to target
+function animBars(){
+  document.querySelectorAll('.db').forEach((bar,i)=>{
+    const target=bar.dataset.w+'%';
+    bar.classList.remove('animate');
+    bar.style.width='0%';
+    // Force reflow so browser registers the reset before re-animating
+    void bar.offsetWidth;
+    setTimeout(()=>{
+      bar.classList.add('animate');
+      bar.style.width=target;
+    }, 200 + i*150);
+  });
+}
+
+// ── Counter animation for stats strip
+function animCounter(el,target,suffix,prefix,delay){
+  setTimeout(()=>{
+    if(target===0){el.textContent=(prefix||'')+'0'+(suffix||'');return;}
+    let c=0;const step=target/55;
+    el.textContent=(prefix||'')+'0'+(suffix||'');
+    const t=setInterval(()=>{
+      c+=step;if(c>=target){c=target;clearInterval(t);}
+      el.textContent=(prefix||'')+Math.floor(c)+(suffix||'');
+    },18);
+  },delay||0);
+}
+
+// ── Master scroll observer — fires on ENTER and resets on EXIT
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      // Reveal animation
+      e.target.classList.add('visible');
+
+      // Stats strip counters
+      if(e.target.id==='statsStrip'){
+        animCounter(document.getElementById('s1'),60,'s','',0);
+        animCounter(document.getElementById('s2'),3,'','',150);
+        animCounter(document.getElementById('s3'),0,'','$',0); // stays $0
+        animCounter(document.getElementById('s4'),100,'%','',300);
+      }
+    } else {
+      // RESET when element leaves viewport — so next entry replays
+      e.target.classList.remove('visible');
+    }
+  });
+},{threshold:0.12});
+
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── Hero demo card: animate KPIs + bars on page load
+window.addEventListener('load',()=>{
+  animKpi(document.getElementById('kpi1'),847,'',800);
+  animKpi(document.getElementById('kpi2'),23,'ms',1000);
+  animBars();
+});
+
+// ── 3D tilt on demo card
+const demo=document.getElementById('demoCard');
+demo.addEventListener('mousemove',e=>{
+  const r=demo.getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width-.5;
+  const y=(e.clientY-r.top)/r.height-.5;
+  demo.style.transform=`perspective(1200px) rotateY(${x*8}deg) rotateX(${-y*5}deg) scale(1.015)`;
+});
+demo.addEventListener('mouseleave',()=>{
+  demo.style.transform='perspective(1200px) rotateY(0) rotateX(0) scale(1)';
+});
+
+// ── Parallax scroll on demo
+window.addEventListener('scroll',()=>{
+  const y=scrollY;
+  if(!demo.matches(':hover')){
+    demo.style.transform=`perspective(1200px) rotateX(${Math.min(y*.01,3)}deg) translateY(${y*.04}px)`;
+  }
+});
+</script>
+</body>
+</html>
