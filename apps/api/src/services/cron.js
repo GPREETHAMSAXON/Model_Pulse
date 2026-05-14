@@ -1,23 +1,25 @@
 'use strict';
 
-const { runDriftJob } = require('./drift');
-const { runLlmJob  } = require('./llmCron');
+const { runDriftJob }    = require('./drift');
+const { runLlmJob }      = require('./llmCron');
+const { runAccuracyJob } = require('./accuracyCron');
 
-const INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const INTERVAL_MS = 60 * 60 * 1000;
 let timer = null;
 
 function startCron() {
-  console.log('[cron] Drift + LLM job scheduler started — runs every 60 minutes');
+  console.log('[cron] Drift + LLM + Accuracy job scheduler started — runs every 60 minutes');
 
-  // Run immediately on startup after DBs settle
   setTimeout(async () => {
-    await runDriftJob().catch(err => console.error('[cron] Initial drift job failed:', err.message));
-    await runLlmJob().catch(err => console.error('[cron] Initial LLM job failed:', err.message));
+    await runDriftJob().catch(err    => console.error('[cron] Drift job failed:', err.message));
+    await runLlmJob().catch(err      => console.error('[cron] LLM job failed:', err.message));
+    await runAccuracyJob().catch(err => console.error('[cron] Accuracy job failed:', err.message));
   }, 10000);
 
   timer = setInterval(async () => {
-    await runDriftJob().catch(err => console.error('[cron] Drift job failed:', err.message));
-    await runLlmJob().catch(err => console.error('[cron] LLM job failed:', err.message));
+    await runDriftJob().catch(err    => console.error('[cron] Drift job failed:', err.message));
+    await runLlmJob().catch(err      => console.error('[cron] LLM job failed:', err.message));
+    await runAccuracyJob().catch(err => console.error('[cron] Accuracy job failed:', err.message));
   }, INTERVAL_MS);
 
   if (timer.unref) timer.unref();
