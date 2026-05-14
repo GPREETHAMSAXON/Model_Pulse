@@ -1,0 +1,36 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Env files — never commit
+.env
+.env.local
+.env.production
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+apps/frontend/dist/
+apps/frontend/.vercel/

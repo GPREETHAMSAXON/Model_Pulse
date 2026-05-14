@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+evidently==0.4.22
+scipy
+numpy
+pandas
+pydantic
+python-dotenv
+httpx
