@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modelpulse-sdk"
-version = "0.1.1"
-description = "ML model monitoring for developers — one decorator, live drift detection, AI diagnosis, alerts in 60 seconds"
+version = "0.2.0"
+description = "ML model monitoring + LLM observability — one decorator, live drift detection, AI diagnosis, token cost tracking"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Saxon Preetham", email = "preethamsaxon2006@gmail.com" }]
 requires-python = ">=3.8"
-keywords = ["ml", "machine-learning", "monitoring", "drift", "mlops", "model-monitoring", "ai", "mlops"]
+keywords = ["ml", "machine-learning", "monitoring", "drift", "mlops", "llm", "observability", "openai", "anthropic"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
