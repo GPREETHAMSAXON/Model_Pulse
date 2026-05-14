@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* ModelPulse design tokens */
+:root {
+  --mp-bg:        #0f1117;
+  --mp-surface:   #1a1d27;
+  --mp-border:    #2a2d3a;
+  --mp-text:      #e8eaf0;
+  --mp-muted:     #8b8fa8;
+  --mp-primary:   #6366f1;
+  --mp-success:   #22c55e;
+  --mp-warning:   #f59e0b;
+  --mp-danger:    #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--mp-bg);
+  color: var(--mp-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--mp-bg); }
+::-webkit-scrollbar-thumb { background: var(--mp-border); border-radius: 3px; }
