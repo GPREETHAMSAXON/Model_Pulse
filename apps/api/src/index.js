@@ -15,12 +15,28 @@ const { startCron } = require('./services/cron');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// ── Security middleware
-app.use(helmet());
+// ── CORS — allow all Vercel deployments + localhost
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    // Allow any vercel.app subdomain
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow explicitly listed origins
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
+
+// ── Security middleware
+app.use(helmet());
 
 // ── Request parsing
 app.use(express.json({ limit: '2mb' }));
@@ -45,7 +61,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'modelpulse-api', env: process.env.NODE_ENV });
 });
 
-// ── Manual drift job trigger (dev only — remove in production)
+// ── Manual drift job trigger (dev only)
 if (process.env.NODE_ENV === 'development') {
   app.post('/dev/run-drift', async (req, res) => {
     const { runDriftJob } = require('./services/drift');
@@ -93,11 +109,10 @@ async function start() {
     console.log('✓ PostgreSQL models synced');
 
     console.log('→ Connecting to MongoDB...');
-    console.log('  URI:', process.env.MONGODB_URI || 'UNDEFINED');
+    console.log('  URI:', process.env.MONGODB_URI ? 'SET' : 'UNDEFINED');
     await connectMongo();
     console.log('✓ MongoDB connected');
 
-    // Start the hourly drift cron job
     startCron();
 
     app.listen(PORT, () => {
