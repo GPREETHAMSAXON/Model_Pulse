@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Production API URL — falls back to local proxy in development
+const BASE_URL = import.meta.env.VITE_API_URL
+  || (import.meta.env.PROD ? 'https://model-pulse.onrender.com/api/v1' : '/api/v1');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -33,15 +37,15 @@ export const authApi = {
 
 // ── Models
 export const modelsApi = {
-  list:        ()              => api.get('/models'),
-  get:         (id)            => api.get(`/models/${id}`),
-  create:      (data)          => api.post('/models', data),
-  update:      (id, data)      => api.patch(`/models/${id}`, data),
-  archive:     (id)            => api.delete(`/models/${id}`),
-  generateKey: (id, data)      => api.post(`/models/${id}/keys`, data),
-  listKeys:    (id)            => api.get(`/models/${id}/keys`),
-  revokeKey:   (id, keyId)     => api.delete(`/models/${id}/keys/${keyId}`),
-  listSnapshots: (id)          => api.get(`/models/${id}/snapshots`),
+  list:          ()          => api.get('/models'),
+  get:           (id)        => api.get(`/models/${id}`),
+  create:        (data)      => api.post('/models', data),
+  update:        (id, data)  => api.patch(`/models/${id}`, data),
+  archive:       (id)        => api.delete(`/models/${id}`),
+  generateKey:   (id, data)  => api.post(`/models/${id}/keys`, data),
+  listKeys:      (id)        => api.get(`/models/${id}/keys`),
+  revokeKey:     (id, keyId) => api.delete(`/models/${id}/keys/${keyId}`),
+  listSnapshots: (id)        => api.get(`/models/${id}/snapshots`),
 };
 
 // ── Predictions
