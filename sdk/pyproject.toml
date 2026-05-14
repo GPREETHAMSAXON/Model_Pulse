@@ -1,21 +1,20 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "modelpulse"
-version = "0.1.0"
-description = "ML model monitoring for developers — paste your model, get a health dashboard in 60 seconds"
+name = "modelpulse-sdk"
+version = "0.1.1"
+description = "ML model monitoring for developers — one decorator, live drift detection, AI diagnosis, alerts in 60 seconds"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Saxon Preetham", email = "your@email.com" }]
+authors = [{ name = "Saxon Preetham", email = "preethamsaxon2006@gmail.com" }]
 requires-python = ">=3.8"
-keywords = ["ml", "machine-learning", "monitoring", "drift", "mlops", "model-monitoring"]
+keywords = ["ml", "machine-learning", "monitoring", "drift", "mlops", "model-monitoring", "ai", "mlops"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -28,10 +27,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://modelpulse.dev"
-Documentation = "https://docs.modelpulse.dev"
-Repository = "https://github.com/GPREETHAMSAXON/modelpulse"
-Issues = "https://github.com/GPREETHAMSAXON/modelpulse/issues"
+Homepage = "https://landing-kappa-lilac.vercel.app"
+Repository = "https://github.com/GPREETHAMSAXON/Model_Pulse"
+Issues = "https://github.com/GPREETHAMSAXON/Model_Pulse/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
