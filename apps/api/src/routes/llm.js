@@ -4,7 +4,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router  = express.Router();
 const authSdk = require('../middleware/authSdk');
-const auth    = require('../middleware/auth');
+const auth    = require('../middleware/authJwt');
 const llmCtrl = require('../controllers/llmController');
 
 // ── POST /api/v1/llm/batch  (SDK → ingest LLM calls)
@@ -37,7 +37,7 @@ router.get('/:modelId/calls', auth, llmCtrl.getCalls);
 // ── GET /api/v1/llm/:modelId/stats  (dashboard)
 router.get('/:modelId/stats', auth, llmCtrl.getStats);
 
-// ── POST /api/v1/llm/:modelId/feedback  (user feedback on a call)
+// ── POST /api/v1/llm/:modelId/feedback
 router.post('/:modelId/feedback', auth,
   [
     body('call_id').notEmpty(),
