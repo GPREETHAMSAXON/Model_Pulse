@@ -15,7 +15,11 @@ const useAuthStore = create((set) => ({
       set({ user: data.user, token: data.token, loading: false });
       return true;
     } catch (err) {
-      set({ error: err.response?.data?.error || 'Login failed', loading: false });
+      const msg = err.response?.data?.error
+        || err.response?.data?.message
+        || err.message
+        || 'Login failed';
+      set({ error: String(msg), loading: false });
       return false;
     }
   },
@@ -28,7 +32,11 @@ const useAuthStore = create((set) => ({
       set({ user: data.user, token: data.token, loading: false });
       return true;
     } catch (err) {
-      set({ error: err.response?.data?.error || 'Registration failed', loading: false });
+      const msg = err.response?.data?.error
+        || err.response?.data?.message
+        || err.message
+        || 'Registration failed';
+      set({ error: String(msg), loading: false });
       return false;
     }
   },
